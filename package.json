@@ -1,7 +1,7 @@
 {
   "name": "kaka",
   "version": "0.1.0",
-  "description": "Self-contained local LLM coding agent CLI powered by Qwen3.5-35B-A3B",
+  "description": "Self-contained local LLM coding agent CLI powered by Qwen3-8B",
   "type": "module",
   "bin": {
     "kaka": "./bin/kaka.js"
