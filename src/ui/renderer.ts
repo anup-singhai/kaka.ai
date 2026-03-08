@@ -20,6 +20,7 @@ export class Renderer {
   private spinner: any = null;
   private streamBuffer = '';
   private marked: any = null;
+  private _hadOutput = false;
 
   async init(): Promise<void> {
     await loadDeps();
@@ -39,20 +40,26 @@ export class Renderer {
     }
   }
 
-  /** Handle streaming text chunk */
+  /** Handle streaming text chunk - buffer for final markdown render */
   onTextChunk(chunk: string): void {
     this.stopSpinner();
-    process.stdout.write(chunk);
     this.streamBuffer += chunk;
+    this._hadOutput = true;
   }
 
-  /** Finish streaming - render final markdown */
+  /** Finish streaming - render the buffered content as formatted markdown */
   finishStream(): void {
     if (this.streamBuffer) {
-      // Move to new line after stream
-      process.stdout.write('\n');
+      const text = this.streamBuffer;
       this.streamBuffer = '';
+      this.renderMarkdown(text);
     }
+    this._hadOutput = false;
+  }
+
+  /** Check if streaming produced any output (reset after finishStream) */
+  hadStreamOutput(): boolean {
+    return this._hadOutput;
   }
 
   /** Display a tool call notification */
