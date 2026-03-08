@@ -20,7 +20,6 @@ export class Renderer {
   private spinner: any = null;
   private streamBuffer = '';
   private marked: any = null;
-  private chunkCount = 0;
 
   async init(): Promise<void> {
     await loadDeps();
@@ -40,30 +39,20 @@ export class Renderer {
     }
   }
 
-  /** Handle streaming text chunk - show dots as progress, buffer for markdown */
+  /** Handle streaming text chunk - buffer silently, spinner keeps running */
   onTextChunk(chunk: string): void {
-    if (this.chunkCount === 0) {
-      this.stopSpinner();
-    }
     this.streamBuffer += chunk;
-    this.chunkCount++;
-    // Show a dot every 20 chunks as a progress indicator
-    if (this.chunkCount % 20 === 0) {
-      process.stdout.write(chalk.dim('.'));
-    }
   }
 
-  /** Finish streaming - render the buffered content as formatted markdown */
+  /** Finish streaming - stop spinner and render the buffered markdown */
   finishStream(): void {
+    this.stopSpinner();
     if (this.streamBuffer) {
-      // Clear the progress dots
-      if (this.chunkCount > 0) {
-        process.stdout.write('\r\x1b[K');
-      }
       const text = this.streamBuffer.replace(/^\n+/, '');
       this.streamBuffer = '';
-      this.chunkCount = 0;
-      this.renderMarkdown(text);
+      if (text) {
+        this.renderMarkdown(text);
+      }
     }
   }
 
