@@ -1,4 +1,5 @@
 import type { Tool, ToolCall, LLMResponse, AgentConfig, ToolParameters } from '../types.js';
+import type { ToolResult } from '../types.js';
 import type {
   LlamaChatSession as LlamaChatSessionType,
   LlamaModel as LlamaModelType,
@@ -7,9 +8,22 @@ import type {
   GbnfJsonObjectSchema,
 } from 'node-llama-cpp';
 
+/** Callback to execute a tool and optionally check approval */
+export type ToolExecutor = (name: string, args: Record<string, unknown>) => Promise<ToolResult>;
+
+/** Callback for UI notifications during tool execution */
+export interface ProviderCallbacks {
+  onToolCall?: (name: string, args: Record<string, unknown>) => void;
+  onToolResult?: (name: string, result: ToolResult) => void;
+  onText?: (chunk: string) => void;
+}
+
 /**
  * Provider wraps node-llama-cpp's chat session with tool calling support.
- * Uses grammar-constrained generation for reliable JSON tool calls.
+ *
+ * Key insight: node-llama-cpp executes tool handlers DURING session.prompt().
+ * The handler return value becomes the tool result the model sees.
+ * So we execute tools inside the handlers to give the model real results.
  */
 export class Provider {
   private model: LlamaModelType;
@@ -23,7 +37,6 @@ export class Provider {
     this.config = config;
   }
 
-  /** Initialize or reset the chat session */
   async initSession(systemPrompt: string): Promise<void> {
     const { LlamaChatSession } = await import('node-llama-cpp');
     this.session = new LlamaChatSession({
@@ -32,27 +45,25 @@ export class Provider {
     });
   }
 
-  /** Get the underlying context for token counting */
   getContext(): LlamaContextType {
     return this.context;
   }
 
-  /** Get the underlying model for tokenization */
   getModel(): LlamaModelType {
     return this.model;
   }
 
   /**
    * Send a message with tool definitions and get a response.
-   * Supports streaming text via onChunk callback.
    *
-   * node-llama-cpp handles tool calling through defineChatSessionFunction.
-   * The grammar ensures tool call JSON is always valid.
+   * Tools are executed inside the handlers during session.prompt().
+   * The model sees real tool results and can chain multiple calls.
    */
   async chat(
     message: string,
     tools: Tool[],
-    onChunk?: (text: string) => void,
+    executor: ToolExecutor,
+    callbacks: ProviderCallbacks = {},
   ): Promise<LLMResponse> {
     if (!this.session) {
       throw new Error('Session not initialized. Call initSession() first.');
@@ -60,10 +71,8 @@ export class Provider {
 
     const { defineChatSessionFunction } = await import('node-llama-cpp');
 
-    // Build function definitions for node-llama-cpp
-    // Use 'any' for the record type - node-llama-cpp validates via grammar at runtime
     const functions: Record<string, any> = {};
-    const pendingCalls: ToolCall[] = [];
+    const executedCalls: ToolCall[] = [];
     let callIdCounter = 0;
 
     for (const tool of tools) {
@@ -73,13 +82,18 @@ export class Provider {
       functions[toolName] = defineChatSessionFunction({
         description: tool.description,
         params: schema,
-        handler(params: Record<string, unknown>) {
-          pendingCalls.push({
-            id: `call_${callIdCounter++}`,
-            name: toolName,
-            arguments: params,
-          });
-          return 'Tool call queued for execution.';
+        async handler(params: Record<string, unknown>) {
+          const callId = `call_${callIdCounter++}`;
+          executedCalls.push({ id: callId, name: toolName, arguments: params });
+
+          callbacks.onToolCall?.(toolName, params);
+
+          // Execute the tool for real - the return value is what the model sees
+          const result = await executor(toolName, params);
+
+          callbacks.onToolResult?.(toolName, result);
+
+          return result.content;
         },
       } as any);
     }
@@ -88,22 +102,20 @@ export class Provider {
       functions: Object.keys(functions).length > 0 ? functions : undefined,
       maxTokens: this.config.maxTokens,
       temperature: this.config.temperature,
-      onTextChunk: onChunk ? (chunk: string) => onChunk(chunk) : undefined,
+      onTextChunk: callbacks.onText ? (chunk: string) => callbacks.onText!(chunk) : undefined,
     });
 
     return {
       content: response ?? '',
-      toolCalls: pendingCalls,
+      toolCalls: executedCalls,
     };
   }
 
-  /** Get chat history from the session for context management */
   getChatHistory(): unknown[] {
     if (!this.session) return [];
     return this.session.getChatHistory();
   }
 
-  /** Dispose of resources */
   async dispose(): Promise<void> {
     if (this.context) {
       await this.context.dispose();
@@ -114,10 +126,6 @@ export class Provider {
   }
 }
 
-/**
- * Convert our ToolParameters to node-llama-cpp's GbnfJsonObjectSchema.
- * The schema must use readonly properties to satisfy the type constraints.
- */
 function convertParams(params: ToolParameters): GbnfJsonObjectSchema {
   const properties: Record<string, GbnfJsonSchema> = {};
 

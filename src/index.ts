@@ -118,7 +118,6 @@ async function main() {
 
   // Interactive REPL
   const terminal = new Terminal();
-  terminal.init();
 
   // Handle Ctrl+C
   let ctrlCCount = 0;

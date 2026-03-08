@@ -1,10 +1,10 @@
 {
-  "name": "kaka",
+  "name": "kaka.ai",
   "version": "0.1.0",
   "description": "Self-contained local LLM coding agent CLI powered by Qwen3-8B",
   "type": "module",
   "bin": {
-    "kaka": "./bin/kaka.js"
+    "kaka": "bin/kaka.js"
   },
   "scripts": {
     "build": "tsc",

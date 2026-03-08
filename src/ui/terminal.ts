@@ -5,25 +5,30 @@ export class Terminal {
   private rl: ReadlineInterface | null = null;
   private abortController: AbortController | null = null;
 
-  /** Start the readline interface */
-  init(): void {
-    this.rl = createInterface({
-      input: stdin,
-      output: stdout,
-      terminal: true,
-    });
-  }
-
-  /** Get user input with prompt */
+  /** Get user input with prompt. Creates a fresh readline each time for robustness. */
   async prompt(): Promise<string | null> {
-    if (!this.rl) this.init();
+    // Close previous readline if still open
+    if (this.rl) {
+      this.rl.close();
+      this.rl = null;
+    }
 
     try {
-      const input = await this.rl!.question('\n> ');
+      this.rl = createInterface({
+        input: stdin,
+        output: stdout,
+        terminal: true,
+      });
+
+      const input = await this.rl.question('\n> ');
       return input.trim();
     } catch {
-      // Handle Ctrl+C or closed input
       return null;
+    } finally {
+      if (this.rl) {
+        this.rl.close();
+        this.rl = null;
+      }
     }
   }
 
