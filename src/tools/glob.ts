@@ -7,7 +7,7 @@ const MAX_RESULTS = 200;
 
 export const globTool: Tool = {
   name: 'glob',
-  description: 'Find files matching a glob pattern. Returns matching file paths.',
+  description: 'Find files matching a glob pattern. Use this to discover project structure and locate source files. Examples: "**/*.ts", "src/**/*.py", "*.json".',
   parameters: {
     type: 'object',
     properties: {

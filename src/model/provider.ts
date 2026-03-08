@@ -98,7 +98,12 @@ export class Provider {
       } as any);
     }
 
-    const response = await this.session.prompt(message, {
+    // Append /no_think to disable Qwen3's internal reasoning mode.
+    // This reduces latency significantly — the model skips <think> tokens
+    // and goes straight to tool calls or responses.
+    const promptMessage = message + ' /no_think';
+
+    const response = await this.session.prompt(promptMessage, {
       functions: Object.keys(functions).length > 0 ? functions : undefined,
       maxTokens: this.config.maxTokens,
       temperature: this.config.temperature,

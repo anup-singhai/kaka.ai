@@ -7,7 +7,7 @@ const MAX_FILE_SIZE = 100 * 1024; // 100KB
 
 export const readFileTool: Tool = {
   name: 'read_file',
-  description: 'Read a file and return its contents with line numbers. Supports offset and limit for large files.',
+  description: 'Read a file and return its contents with line numbers. Use this to understand code before modifying it. Supports offset and limit for large files.',
   parameters: {
     type: 'object',
     properties: {

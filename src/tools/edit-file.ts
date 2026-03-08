@@ -6,7 +6,7 @@ import { silentResult, errorResult } from './result.js';
 /** Edit file via search/replace - mirrors v16-client edit.go */
 export const editFileTool: Tool = {
   name: 'edit_file',
-  description: 'Edit a file by replacing old_text with new_text. The old_text must match exactly and be unique in the file.',
+  description: 'Edit a file by replacing old_text with new_text. Always read_file first to see the current content. The old_text must match exactly and be unique in the file.',
   parameters: {
     type: 'object',
     properties: {

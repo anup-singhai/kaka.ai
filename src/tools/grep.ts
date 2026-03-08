@@ -7,7 +7,7 @@ const MAX_OUTPUT = 50_000;
 
 export const grepTool: Tool = {
   name: 'grep',
-  description: 'Search file contents using grep. Returns matching lines with file paths and line numbers.',
+  description: 'Search file contents for a pattern. Returns matching lines with file paths and line numbers. Use this to find function definitions, imports, usages, and specific code patterns.',
   parameters: {
     type: 'object',
     properties: {

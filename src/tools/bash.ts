@@ -19,7 +19,7 @@ const DENY_PATTERNS = [
 
 export const bashTool: Tool = {
   name: 'bash',
-  description: 'Execute a shell command and return its output. Requires user approval.',
+  description: 'Execute a shell command and return its output. Use for git operations, running tests, builds, and other terminal tasks. Requires user approval.',
   parameters: {
     type: 'object',
     properties: {

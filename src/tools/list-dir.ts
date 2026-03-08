@@ -5,7 +5,7 @@ import { successResult, errorResult } from './result.js';
 
 export const listDirTool: Tool = {
   name: 'list_dir',
-  description: 'List directory contents with type indicators (/ for dirs, * for executables).',
+  description: 'List directory contents with type indicators (/ for dirs, * for executables). Use this as the first step to understand project structure.',
   parameters: {
     type: 'object',
     properties: {
