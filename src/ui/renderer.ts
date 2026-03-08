@@ -20,7 +20,7 @@ export class Renderer {
   private spinner: any = null;
   private streamBuffer = '';
   private marked: any = null;
-  private _hadOutput = false;
+  private chunkCount = 0;
 
   async init(): Promise<void> {
     await loadDeps();
@@ -40,26 +40,31 @@ export class Renderer {
     }
   }
 
-  /** Handle streaming text chunk - buffer for final markdown render */
+  /** Handle streaming text chunk - show dots as progress, buffer for markdown */
   onTextChunk(chunk: string): void {
-    this.stopSpinner();
+    if (this.chunkCount === 0) {
+      this.stopSpinner();
+    }
     this.streamBuffer += chunk;
-    this._hadOutput = true;
+    this.chunkCount++;
+    // Show a dot every 20 chunks as a progress indicator
+    if (this.chunkCount % 20 === 0) {
+      process.stdout.write(chalk.dim('.'));
+    }
   }
 
   /** Finish streaming - render the buffered content as formatted markdown */
   finishStream(): void {
     if (this.streamBuffer) {
-      const text = this.streamBuffer;
+      // Clear the progress dots
+      if (this.chunkCount > 0) {
+        process.stdout.write('\r\x1b[K');
+      }
+      const text = this.streamBuffer.replace(/^\n+/, '');
       this.streamBuffer = '';
+      this.chunkCount = 0;
       this.renderMarkdown(text);
     }
-    this._hadOutput = false;
-  }
-
-  /** Check if streaming produced any output (reset after finishStream) */
-  hadStreamOutput(): boolean {
-    return this._hadOutput;
   }
 
   /** Display a tool call notification */
@@ -74,11 +79,13 @@ export class Renderer {
     if (result.silent) return;
 
     if (result.isError) {
-      console.log(chalk.red(`  [error] ${result.content.slice(0, 200)}`));
+      console.log(chalk.red(`  [error] ${result.content.slice(0, 100)}`));
     } else {
-      const preview = result.content.length > 200
-        ? result.content.slice(0, 200) + '...'
-        : result.content;
+      // Show only the first line of the result, capped at 100 chars
+      const firstLine = result.content.split('\n')[0];
+      const preview = firstLine.length > 100
+        ? firstLine.slice(0, 100) + '...'
+        : firstLine;
       console.log(chalk.dim(`  [result] ${preview}`));
     }
   }

@@ -204,11 +204,6 @@ async function processMessage(agent: AgentLoop, input: string, renderer: Rendere
     });
 
     renderer.finishStream();
-
-    // If streaming didn't produce output, render the full response
-    if (response && !renderer.hadStreamOutput()) {
-      renderer.renderMarkdown(response);
-    }
   } catch (err) {
     renderer.showError(err instanceof Error ? err.message : String(err));
   }
