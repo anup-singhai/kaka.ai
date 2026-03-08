@@ -7,7 +7,7 @@ Runs [Qwen3-8B](https://huggingface.co/unsloth/Qwen3-8B-GGUF) locally via [node-
 ## Install
 
 ```bash
-npm install -g kaka
+npm install -g kaka.ai
 ```
 
 First run automatically downloads the model (~5GB) from HuggingFace.
@@ -97,13 +97,13 @@ Example `.kaka.json`:
 
 ## Using a different model
 
-Any GGUF model works. Example with a larger model on a 64GB+ Mac:
+Any GGUF model works. Point to a local file:
 
 ```bash
-kaka --model-path ~/.kaka/models/some-other-model.gguf
+kaka --model-path ~/models/some-other-model.gguf
 ```
 
-Or set defaults in `~/.config/kaka/config.json`:
+Or change the default HuggingFace download in `~/.config/kaka/config.json`:
 
 ```json
 {
@@ -114,31 +114,16 @@ Or set defaults in `~/.config/kaka/config.json`:
 }
 ```
 
-## Architecture
+## How it works
 
-```
-src/
-  index.ts              CLI entry, arg parsing, REPL
-  types.ts              Shared interfaces
-  config.ts             Config loading (defaults -> file -> env -> CLI)
-  model/
-    loader.ts           Model download + loading via node-llama-cpp
-    provider.ts         Chat completion with grammar-constrained tool calling
-  agent/
-    loop.ts             Core agentic loop (call LLM -> execute tools -> repeat)
-    context.ts          System prompt + context window management
-    session.ts          Conversation persistence (JSON files)
-  tools/
-    registry.ts         Tool registry
-    result.ts           ToolResult helpers
-    read-file.ts        write-file.ts    edit-file.ts
-    bash.ts             glob.ts          grep.ts          list-dir.ts
-  safety/
-    approval.ts         Deny patterns + user approval prompts
-  ui/
-    terminal.ts         REPL loop, readline
-    renderer.ts         Streaming markdown, spinners, tool display
-```
+kaka embeds a full LLM runtime via `node-llama-cpp`. When you send a message:
+
+1. The model generates a response, optionally calling tools
+2. Tool calls are executed locally (file reads, shell commands, etc.)
+3. Results are fed back to the model via grammar-constrained function calling
+4. The model continues until it has a final answer
+
+All inference runs on-device using Metal GPU acceleration. No data leaves your machine.
 
 ## Requirements
 
